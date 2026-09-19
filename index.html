@@ -10,9 +10,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- ============================================================
-     STYLES  (identical to your original, plus a tiny loading rule)
-     ============================================================ -->
 <style>
 :root{
   --bg:#0d0d0d;
@@ -669,12 +666,6 @@ svg{width:100%;height:100%;display:block}
 (() => {
 'use strict';
 
-/* ============================================================
-   MODULE: CONFIG
-   ------------------------------------------------------------
-   Auto-detected from GitHub Pages URL when possible.
-   Set owner/repo manually ONLY if you're testing locally.
-   ============================================================ */
 const CONFIG = {
   owner:   null,        // e.g. 'your-username'  — auto-filled on *.github.io
   repo:    null,        // e.g. 'photo-gallery'
@@ -696,9 +687,7 @@ function detectRepo() {
 
 const CFG = detectRepo();
 
-/* ============================================================
-   MODULE: ICONS
-   ============================================================ */
+
 const I = {
   grid:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2"/></svg>`,
   heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20.4C12 20.4 3.6 15 3.6 9.4a4.85 4.85 0 0 1 8.4-3.3 4.85 4.85 0 0 1 8.4 3.3c0 5.6-8.4 11-8.4 11Z"/></svg>`,
@@ -708,9 +697,7 @@ const I = {
   plus:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`
 };
 
-/* ============================================================
-   MODULE: DOM
-   ============================================================ */
+
 const $ = id => document.getElementById(id);
 
 const gallery        = $('gallery');
@@ -770,9 +757,7 @@ const store = {
   persistTags() { writeLS(KEY.tags, this.userTags); }
 };
 
-/* ============================================================
-   MODULE: STATE
-   ============================================================ */
+
 const state = {
   photos: [],          // populated after load
   collection: readLS(KEY.active, 'all'),
@@ -782,9 +767,6 @@ const state = {
 };
 let BY_ID = new Map();
 
-/* ============================================================
-   MODULE: UTILITIES
-   ============================================================ */
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
 
@@ -826,9 +808,7 @@ function tagsFromFilename(name) {
     .filter(t => t.length > 2 && !/^\d+$/.test(t));
 }
 
-/* ============================================================
-   MODULE: GITHUB / CDN DATA LOADER
-   ============================================================ */
+
 const IMG_EXT = /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i;
 
 /* Skip obvious non-photo paths (icons, logos, etc.) */
@@ -938,11 +918,7 @@ function buildPhotos(files) {
   return photos;
 }
 
-/* ============================================================
-   MODULE: METADATA HYDRATION
-   Reads natural dimensions + dominant colour from each image.
-   Runs with limited concurrency so the page stays responsive.
-   ============================================================ */
+
 let hydrateToken = 0;
 
 function hydrateMetadata(photos) {
@@ -1021,9 +997,7 @@ function hydrateMetadata(photos) {
   for (let k = 0; k < CONCURRENCY; k++) next();
 }
 
-/* ============================================================
-   MODULE: FILTERING
-   ============================================================ */
+
 function filteredPhotos() {
   let list = state.photos;
 
@@ -1052,9 +1026,7 @@ function filteredPhotos() {
   return list;
 }
 
-/* ============================================================
-   MODULE: MASONRY LAYOUT  (unchanged from your original)
-   ============================================================ */
+
 let sections = [];
 let firstLayoutDone = false;
 
@@ -1109,9 +1081,7 @@ function relayout() {
   }
 }
 
-/* ============================================================
-   MODULE: TILE FACTORY
-   ============================================================ */
+
 function createTile(p) {
   const el = document.createElement('article');
   el.className = 'tile';
@@ -1142,9 +1112,6 @@ function createTile(p) {
   return el;
 }
 
-/* ============================================================
-   MODULE: GALLERY RENDER
-   ============================================================ */
 function render() {
   const photos = filteredPhotos();
   state.viewList = photos;
