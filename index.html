@@ -13,7 +13,6 @@
 <style>
 :root{
   --bg:#0d0d0d;
-  --bg-deep:#000000;
   --panel:rgba(255,255,255,.04);
   --panel-2:rgba(255,255,255,.07);
   --stroke:rgba(255,255,255,.08);
@@ -49,7 +48,6 @@ input{font:inherit;color:inherit}
 img{display:block;max-width:100%}
 svg{width:100%;height:100%;display:block}
 ::selection{background:rgba(255,255,255,.18)}
-
 ::-webkit-scrollbar{width:11px;height:11px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{
@@ -309,10 +307,11 @@ svg{width:100%;height:100%;display:block}
 }
 .empty .glyph svg{width:22px;height:22px}
 .empty h3{margin:0;font-size:15px;font-weight:600;color:var(--text)}
-.empty p{margin:0;font-size:13px;max-width:340px;line-height:1.6}
+.empty p{margin:0;font-size:13px;max-width:360px;line-height:1.6}
 .empty.loading .glyph{animation:pulse 1.6s ease-in-out infinite}
 @keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
 
+/* ---------- Lightbox (FIXED: flexbox + min-width/min-height reset) ---------- */
 .lightbox{
   position:fixed;inset:0;z-index:400;
   opacity:0;visibility:hidden;
@@ -321,6 +320,7 @@ svg{width:100%;height:100%;display:block}
   overflow:hidden;
 }
 .lightbox.open{opacity:1;visibility:visible}
+
 .ambient{position:absolute;inset:-12%;z-index:0;overflow:hidden;pointer-events:none}
 .ambient-img{
   position:absolute;inset:0;width:100%;height:100%;object-fit:cover;
@@ -338,19 +338,32 @@ svg{width:100%;height:100%;display:block}
   position:absolute;inset:0;opacity:.16;mix-blend-mode:overlay;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
+
 .lb-stage{
   position:absolute;inset:0;z-index:2;
-  display:grid;place-items:center;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   padding:92px 118px;
+  box-sizing:border-box;
+  min-width:0;
+  min-height:0;
   touch-action:pan-y;
   cursor:zoom-out;
 }
 .lb-img{
-  max-width:100%;max-height:100%;width:auto;height:auto;
+  max-width:100%;
+  max-height:100%;
+  width:auto;
+  height:auto;
+  min-width:0;
+  min-height:0;
+  display:block;
   object-fit:contain;
   border-radius:6px;
   box-shadow:0 40px 110px rgba(0,0,0,.72);
-  opacity:0;transform:translateX(0);
+  opacity:0;
+  transform:translateX(0);
   transition:opacity .45s var(--ease-out);
   user-select:none;-webkit-user-drag:none;
   cursor:default;
@@ -520,7 +533,6 @@ svg{width:100%;height:100%;display:block}
   .tagstrip-label{display:none}
   .lb-nav{display:none}
 }
-
 @media (prefers-reduced-motion:reduce){
   *{animation-duration:.001ms !important;transition-duration:.001ms !important}
 }
@@ -561,7 +573,6 @@ svg{width:100%;height:100%;display:block}
   <div class="scrim" id="scrim"></div>
 
   <main class="main">
-
     <header class="appbar">
       <div class="appbar-row">
         <button class="icon-btn menu-btn" id="menuBtn" aria-label="Open collections">
@@ -607,11 +618,9 @@ svg{width:100%;height:100%;display:block}
       <h3 id="emptyTitle">Loading…</h3>
       <p id="emptyText">Fetching your folders from GitHub.</p>
     </div>
-
   </main>
 </div>
 
-<!-- Lightbox -->
 <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" aria-hidden="true">
 
   <div class="ambient">
@@ -659,16 +668,19 @@ svg{width:100%;height:100%;display:block}
 
 <div class="toast" id="toast"></div>
 
-<!-- ============================================================
-     JAVASCRIPT
-     ============================================================ -->
 <script>
 (() => {
 'use strict';
 
+/* ============================================================
+   CONFIG
+   ------------------------------------------------------------
+   Auto-detected from the GitHub Pages URL.
+   If hosting elsewhere, fill in owner + repo manually.
+   ============================================================ */
 const CONFIG = {
-  owner:   'milan-magar',
-  repo:    'my_gallery',
+  owner:   null,        // e.g. 'milan-magar'
+  repo:    null,        // e.g. 'my_gallery'
   branch:  'main',
   cacheMin: 3
 };
@@ -684,22 +696,23 @@ function detectRepo() {
   }
   return { ...CONFIG, auto: false };
 }
-
 const CFG = detectRepo();
 
-
+/* ============================================================
+   ICONS
+   ============================================================ */
 const I = {
   grid:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="2.2"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="2.2"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="2.2"/></svg>`,
   heart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 20.4C12 20.4 3.6 15 3.6 9.4a4.85 4.85 0 0 1 8.4-3.3 4.85 4.85 0 0 1 8.4 3.3c0 5.6-8.4 11-8.4 11Z"/></svg>`,
   folder:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 7.4A2.4 2.4 0 0 1 5.4 5h3.1a2 2 0 0 1 1.5.7l1 1.2h7.6A2.4 2.4 0 0 1 21 9.3v7.3a2.4 2.4 0 0 1-2.4 2.4H5.4A2.4 2.4 0 0 1 3 16.6Z"/></svg>`,
   trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9.5 7V5.4A1.4 1.4 0 0 1 10.9 4h2.2a1.4 1.4 0 0 1 1.4 1.4V7M6.5 7l.8 12a1.6 1.6 0 0 0 1.6 1.5h6.2a1.6 1.6 0 0 0 1.6-1.5l.8-12"/></svg>`,
-  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>`,
-  plus:  `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7"/></svg>`
 };
 
-
+/* ============================================================
+   DOM
+   ============================================================ */
 const $ = id => document.getElementById(id);
-
 const gallery        = $('gallery');
 const emptyState     = $('empty');
 const emptyTitle     = $('emptyTitle');
@@ -730,14 +743,14 @@ const lbAdd      = $('lbAdd');
 const lbPop      = $('lbPop');
 
 /* ============================================================
-   MODULE: STORE — localStorage
+   STORE — localStorage
    ============================================================ */
 const KEY = {
-  fav:    'aperture.favorites.v2',
-  cols:   'aperture.collections.v2',
-  active: 'aperture.activeCollection.v2',
-  tags:   'aperture.userTags.v2',
-  cache:  'aperture.cache.v2'
+  fav:    'aperture.favorites.v3',
+  cols:   'aperture.collections.v3',
+  active: 'aperture.activeCollection.v3',
+  tags:   'aperture.userTags.v3',
+  cache:  'aperture.cache.v3'
 };
 
 const readLS = (k, fb) => {
@@ -757,9 +770,11 @@ const store = {
   persistTags() { writeLS(KEY.tags, this.userTags); }
 };
 
-
+/* ============================================================
+   STATE
+   ============================================================ */
 const state = {
-  photos: [],          // populated after load
+  photos: [],
   collection: readLS(KEY.active, 'all'),
   tags: new Set(),
   query: '',
@@ -767,26 +782,25 @@ const state = {
 };
 let BY_ID = new Map();
 
+/* ============================================================
+   UTILITIES
+   ============================================================ */
 const esc = s => String(s).replace(/[&<>"']/g, c =>
   ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-
 const cssEsc = s => String(s).replace(/["\\]/g, '\\$&');
+const prettyName = raw => raw.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-const fmtDate = iso => {
-  if (!iso) return '';
-  return new Date(iso + 'T12:00:00').toLocaleDateString('en-US',
-    { day: 'numeric', month: 'short', year: 'numeric' });
-};
-
-const prettyName = raw =>
-  raw.replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+function tagsFromFilename(name) {
+  return name.replace(/\.[^.]+$/, '').toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter(t => t.length > 2 && !/^\d+$/.test(t));
+}
 
 function shade(hex, amt) {
   const n = parseInt(hex.slice(1), 16);
   const c = v => Math.max(0, Math.min(255, v + amt));
   return `rgb(${c(n >> 16)},${c((n >> 8) & 255)},${c(n & 255)})`;
 }
-
 function hexToRgba(hex, a) {
   const n = parseInt(hex.slice(1), 16);
   return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
@@ -802,16 +816,10 @@ function toast(msg) {
 
 const uid = () => 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
 
-function tagsFromFilename(name) {
-  return name.replace(/\.[^.]+$/, '').toLowerCase()
-    .split(/[^a-z0-9]+/)
-    .filter(t => t.length > 2 && !/^\d+$/.test(t));
-}
-
-
-const IMG_EXT = /\.(jpe?g|png|gif|webp|avif|bmp|svg)$/i;
-
-/* Skip obvious non-photo paths (icons, logos, etc.) */
+/* ============================================================
+   DATA LOADER — jsDelivr (primary) + GitHub API (fallback)
+   ============================================================ */
+const IMG_EXT = /\.(jpe?g|png|gif|webp|avif|bmp)$/i;
 const SKIP_PATH = /(^|\/)(favicon|logo|icon|apple-touch|android-chrome|thumbnail-?default)[^/]*\.(png|svg|ico|jpg)$/i;
 
 async function fetchFromJsDelivr() {
@@ -828,14 +836,13 @@ async function fetchFromJsDelivr() {
     const p = f.name || f.path || '';
     if (!IMG_EXT.test(p)) continue;
     if (SKIP_PATH.test(p)) continue;
-    // ignore files in the repo root (HTML, CSS, JS, favicons at top level)
-    if (!p.includes('/')) continue;
+    if (!p.includes('/')) continue;   // ignore repo root files
     out.push({
       path: p,
       cdn: `https://cdn.jsdelivr.net/gh/${owner}/${repo}@${branch}/${p}`
     });
   }
-  if (!out.length) throw new Error('no images found in the repo');
+  if (!out.length) throw new Error('no images found');
   return out;
 }
 
@@ -861,7 +868,7 @@ async function fetchFromGitHub() {
       cdn: `https://raw.githubusercontent.com/${owner}/${repo}/${branch}/${p}`
     });
   }
-  if (!out.length) throw new Error('no images found in the repo');
+  if (!out.length) throw new Error('no images found');
   return out;
 }
 
@@ -886,14 +893,14 @@ async function fetchFileList({ force = false } = {}) {
 function buildPhotos(files) {
   const photos = [];
   for (const f of files) {
-    const rel = f.path;                       // "travel/beach.jpg"
+    const rel = f.path;
     const parts = rel.split('/');
     const folderRaw = parts.length > 1 ? parts[0] : 'Unsorted';
     const folder = prettyName(folderRaw);
     const filename = parts[parts.length - 1];
     const base = filename.replace(/\.[^.]+$/, '');
+    const id = rel;
 
-    const id = rel;                            // stable id = relative path
     const autoTags = tagsFromFilename(filename);
     const userT = store.userTags[id] || [];
     const tags = [...new Set([...autoTags, ...userT])];
@@ -906,19 +913,19 @@ function buildPhotos(files) {
       place: folder,
       collection: folder,
       tags,
-      w: 4, h: 3,                    // placeholder until hydrated
+      w: 4, h: 3,
       color: '#2a2a2a',
-      date: '',                      // unknown
       featured: false
     });
   }
-  // sort by collection then title
   photos.sort((a, b) =>
     a.collection.localeCompare(b.collection) || a.title.localeCompare(b.title));
   return photos;
 }
 
-
+/* ============================================================
+   METADATA HYDRATION — real dimensions + dominant colour
+   ============================================================ */
 let hydrateToken = 0;
 
 function hydrateMetadata(photos) {
@@ -926,16 +933,12 @@ function hydrateMetadata(photos) {
   let i = 0;
   const CONCURRENCY = 6;
   let pending = 0;
-  let dirty = false;
   let layoutRaf = 0;
 
   const scheduleLayout = () => {
-    dirty = true;
     if (layoutRaf) return;
     layoutRaf = requestAnimationFrame(() => {
       layoutRaf = 0;
-      if (!dirty) return;
-      dirty = false;
       if (myToken === hydrateToken) relayout();
     });
   };
@@ -953,7 +956,6 @@ function hydrateMetadata(photos) {
       p.w = img.naturalWidth || 4;
       p.h = img.naturalHeight || 3;
 
-      // dominant colour via small canvas
       try {
         const c = document.createElement('canvas');
         c.width = c.height = 12;
@@ -964,17 +966,14 @@ function hydrateMetadata(photos) {
         for (let k = 0; k < d.length; k += 4) { r += d[k]; g += d[k+1]; b += d[k+2]; n++; }
         r = Math.round(r/n); g = Math.round(g/n); b = Math.round(b/n);
         p.color = '#' + [r,g,b].map(v => v.toString(16).padStart(2,'0')).join('');
-        // auto-feature very wide (panorama) or very tall (portrait) shots
         const r1 = p.w / p.h;
         p.featured = r1 > 1.9 || r1 < 0.55;
       } catch {}
 
-      // patch the visible tile in place
       const tile = gallery.querySelector(`.tile[data-id="${cssEsc(p.id)}"] .tile-media`);
-      if (tile) {
-        tile.style.backgroundImage = `linear-gradient(145deg, ${p.color}, ${shade(p.color,-34)})`;
-      }
-      // patch the tile's stored ratio entry for relayout
+      if (tile) tile.style.backgroundImage =
+        `linear-gradient(145deg, ${p.color}, ${shade(p.color,-34)})`;
+
       for (const s of sections) {
         for (const t of s.tiles) {
           if (t.el.dataset.id === p.id) { t.ratio = p.w / p.h; t.featured = !!p.featured; }
@@ -997,7 +996,9 @@ function hydrateMetadata(photos) {
   for (let k = 0; k < CONCURRENCY; k++) next();
 }
 
-
+/* ============================================================
+   FILTERING
+   ============================================================ */
 function filteredPhotos() {
   let list = state.photos;
 
@@ -1026,7 +1027,9 @@ function filteredPhotos() {
   return list;
 }
 
-
+/* ============================================================
+   MASONRY LAYOUT
+   ============================================================ */
 let sections = [];
 let firstLayoutDone = false;
 
@@ -1081,7 +1084,9 @@ function relayout() {
   }
 }
 
-
+/* ============================================================
+   TILE FACTORY
+   ============================================================ */
 function createTile(p) {
   const el = document.createElement('article');
   el.className = 'tile';
@@ -1112,6 +1117,9 @@ function createTile(p) {
   return el;
 }
 
+/* ============================================================
+   RENDER
+   ============================================================ */
 function render() {
   const photos = filteredPhotos();
   state.viewList = photos;
@@ -1129,7 +1137,6 @@ function render() {
   }
   emptyState.classList.remove('show');
 
-  // group by collection (folders)
   const order = [];
   const buckets = new Map();
   for (const p of photos) {
@@ -1142,7 +1149,6 @@ function render() {
 
   order.forEach(key => {
     const list = buckets.get(key);
-
     const section = document.createElement('section');
     section.className = 'month-section';
     section.innerHTML = `
@@ -1173,8 +1179,7 @@ function render() {
     let i = 0;
     for (const s of sections) {
       for (const t of s.tiles) {
-        const delay = Math.min(i * 16, 420);
-        setTimeout(() => t.el.classList.add('in'), delay);
+        setTimeout(() => t.el.classList.add('in'), Math.min(i * 16, 420));
         i++;
       }
     }
@@ -1182,9 +1187,7 @@ function render() {
 
   if (!firstLayoutDone) {
     firstLayoutDone = true;
-    requestAnimationFrame(() => {
-      sections.forEach(s => s.gridEl.classList.add('animate'));
-    });
+    requestAnimationFrame(() => sections.forEach(s => s.gridEl.classList.add('animate')));
   } else {
     sections.forEach(s => s.gridEl.classList.add('animate'));
   }
@@ -1199,10 +1202,9 @@ function updateFooter() {
 }
 
 /* ============================================================
-   MODULE: SIDEBAR
+   SIDEBAR
    ============================================================ */
 function renderSidebar() {
-  // folder collections (from disk)
   const folderNames = [...new Set(state.photos.map(p => p.collection))].sort();
   const folderCounts = new Map();
   for (const p of state.photos) {
@@ -1285,7 +1287,7 @@ $('newColForm').addEventListener('submit', e => {
 });
 
 /* ============================================================
-   MODULE: TAG STRIP
+   TAG STRIP
    ============================================================ */
 function renderTags() {
   const freq = new Map();
@@ -1324,7 +1326,7 @@ tagStrip.addEventListener('click', e => {
 });
 
 /* ============================================================
-   MODULE: SEARCH
+   SEARCH
    ============================================================ */
 let searchTimer;
 searchInput.addEventListener('input', () => {
@@ -1347,7 +1349,7 @@ searchClear.addEventListener('click', () => {
 });
 
 /* ============================================================
-   MODULE: MOBILE SIDEBAR
+   MOBILE SIDEBAR
    ============================================================ */
 const openSidebar  = () => { sidebar.classList.add('open');  scrim.classList.add('show'); };
 const closeSidebar = () => { sidebar.classList.remove('open'); scrim.classList.remove('show'); };
@@ -1356,7 +1358,7 @@ $('menuBtn').addEventListener('click', openSidebar);
 scrim.addEventListener('click', closeSidebar);
 
 /* ============================================================
-   MODULE: FAVORITES
+   FAVORITES
    ============================================================ */
 function toggleFavorite(id, originEl) {
   const p = BY_ID.get(id);
@@ -1384,13 +1386,11 @@ function toggleFavorite(id, originEl) {
   renderSidebar();
   updateFooter();
 
-  if (state.collection === 'fav') {
-    setTimeout(render, 260);
-  }
+  if (state.collection === 'fav') setTimeout(render, 260);
 }
 
 /* ============================================================
-   MODULE: GALLERY INTERACTION
+   GALLERY INTERACTION
    ============================================================ */
 gallery.addEventListener('click', e => {
   const favBtn = e.target.closest('.tile-fav');
@@ -1410,7 +1410,7 @@ gallery.addEventListener('keydown', e => {
 });
 
 /* ============================================================
-   MODULE: LIGHTBOX
+   LIGHTBOX
    ============================================================ */
 const lb = { list: [], index: 0, isOpen: false };
 let chromeTimer = null;
@@ -1441,7 +1441,7 @@ function openLightbox(id) {
   lightbox.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
 
-  showPhoto(i, 0);
+  showPhoto(i);
   pokeChrome();
 }
 
@@ -1492,7 +1492,7 @@ function showPhoto(i) {
   lbIndex.textContent = i + 1;
   lbTotal.textContent = n;
   lbTitle.textContent = p.title;
-  lbMeta.textContent  = p.place + (p.date ? ` · ${fmtDate(p.date)}` : '');
+  lbMeta.textContent  = p.place;
   lbTags.innerHTML = p.tags.map(t => `<span class="lb-tag">${esc(t)}</span>`).join('');
 
   syncLightboxFav();
@@ -1675,7 +1675,7 @@ document.addEventListener('keydown', e => {
 });
 
 /* ============================================================
-   MODULE: SHUFFLE
+   SHUFFLE
    ============================================================ */
 $('shuffleBtn').addEventListener('click', () => {
   const list = state.viewList.length ? state.viewList : state.photos;
@@ -1685,7 +1685,7 @@ $('shuffleBtn').addEventListener('click', () => {
 });
 
 /* ============================================================
-   MODULE: REFRESH
+   REFRESH
    ============================================================ */
 refreshBtn.addEventListener('click', async () => {
   refreshBtn.classList.add('spinning');
@@ -1713,7 +1713,7 @@ refreshBtn.addEventListener('click', async () => {
 });
 
 /* ============================================================
-   MODULE: RESIZE
+   RESIZE
    ============================================================ */
 let resizeTimer;
 window.addEventListener('resize', () => {
@@ -1741,9 +1741,8 @@ async function init() {
     emptyState.classList.remove('loading');
     emptyTitle.textContent = 'Configure your repo';
     emptyText.textContent  =
-      'This page needs to know which GitHub repo to read. Host it on GitHub Pages ' +
-      '(so the URL contains the owner + repo), or set CONFIG.owner and CONFIG.repo ' +
-      'at the top of the <script> block.';
+      'Host this page on GitHub Pages, or set CONFIG.owner and CONFIG.repo ' +
+      'near the top of the script block.';
     return;
   }
 
@@ -1766,7 +1765,7 @@ async function init() {
     emptyState.classList.remove('loading');
     emptyTitle.textContent = 'Could not load gallery';
     emptyText.textContent  = err.message +
-      ' — make sure the repo is public, the branch name matches, and your photos sit in subfolders.';
+      ' — make sure the repo is public and photos sit in subfolders.';
   }
 
   if (document.fonts && document.fonts.ready) {
